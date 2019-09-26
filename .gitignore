@@ -36,6 +36,7 @@ build*
 
 # dependencies 
 Eigen*
+nlohmann*
 
 # hidden files
 .vscode

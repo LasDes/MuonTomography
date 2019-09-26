@@ -13,6 +13,8 @@ if (OPENMP_FOUND)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/eigen)
+include_directories(${PROJECT_SOURCE_DIR}/json)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cpp)
