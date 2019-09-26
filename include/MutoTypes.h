@@ -2,13 +2,16 @@
 
 #pragma once
 
+#include <vector>
+#include <string>
+
 // define floating point in the whole program (reserved for GPU)
 typedef double MTfloat;
 typedef unsigned int MTindex;
 
 // use Matrix library: eigen
 #include <Eigen/Dense>
-#include <Eigen_unsupported/Eigen/CXX11/Tensor>
+#include <unsupported/Eigen/CXX11/Tensor>
 
 using namespace Eigen;
 
@@ -39,4 +42,22 @@ struct VoxelData {
     MTindex y;
     MTindex z;
     MTfloat length;
+};
+
+// muon ray data containing energy (future), position and direction
+struct RayData {
+	MTfloat energy;
+	Vector3 pin;
+	Vector3 pout;
+	Vector3 din;
+	Vector3 dout;
+};
+
+typedef std::vector<RayData> MutoMuonData;
+
+struct ImageHeader {
+	char method[16]; 
+	VoxelGrid grid;
+	MTindex nRay;
+	MTindex nIter;
 };
