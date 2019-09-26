@@ -15,7 +15,7 @@ class MutoSiddon {
 
 public:
     MutoSiddon(const VoxelGrid &);
-    ~MutoSiddon() {;}
+    ~MutoSiddon() {}
 
     // get voxels btw two points using Siddon algorithm
     // return values: vectors representing index and path length of each voxel
@@ -23,4 +23,5 @@ public:
 
 private:
     VoxelGrid fGrid;
+    std::vector<VoxelData> fPath;
 };
