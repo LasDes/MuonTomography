@@ -2,6 +2,8 @@
 #include <chrono>
 #include <random>
 
+#include <Eigen/SVD>
+
 #include "MutoTypes.h"
 
 int main () {

@@ -46,7 +46,8 @@ struct VoxelData {
 
 // muon ray data containing energy (future), position and direction
 struct RayData {
-	MTfloat energy;
+	MTfloat ein;
+	MTfloat eout;
 	Vector3 pin;
 	Vector3 pout;
 	Vector3 din;
@@ -60,4 +61,5 @@ struct ImageHeader {
 	VoxelGrid grid;
 	MTindex nRay;
 	MTindex nIter;
+	MTindex fPrecision;
 };

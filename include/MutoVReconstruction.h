@@ -7,7 +7,6 @@
 #pragma once
 
 #include "MutoTypes.h"
-#include "MutoConfig.h"
 
 class MutoVReconstruction {
 public:
@@ -15,5 +14,4 @@ public:
     virtual ~MutoVReconstruction() = 0;
 
     virtual Image reconstruct(const MutoMuonData &) = 0;
-    virtual bool initialize(const MutoConfig &) = 0;
 };

@@ -24,17 +24,24 @@ std::vector<VoxelData> MutoSiddon::getVoxelPath(const Vector3 & p1, const Vector
     MTfloat dp21z = p2(2) - p1(2);
 
 
-    if (eps < std::abs(dp21x)) {
+    if (eps < std::abs(dp21x)) { // check for parallel rays
         a0x = (fGrid.x_min - p1(0)) / dp21x;
         anx = (fGrid.x_min + fGrid.dx * static_cast<MTfloat>(fGrid.nx) - p1(0)) / dp21x;
+    } else if (p1(0) < fGrid.x_min || fGrid.x_min + fGrid.dx*static_cast<MTfloat>(fGrid.nx) <= p1(0)) { 
+        // return empty vector if parallel ray is out of voxel world
+        return fPath;
     }
     if (eps < std::abs(dp21y)) {
         a0y = (fGrid.y_min - p1(1)) / dp21y;
         any = (fGrid.y_min + fGrid.dy * static_cast<MTfloat>(fGrid.ny) - p1(1)) / dp21y;
+    } else if (p1(1) < fGrid.y_min || fGrid.y_min + fGrid.dy*static_cast<MTfloat>(fGrid.ny) <= p1(1)) {
+        return fPath;
     }
     if (eps < std::abs(dp21z)) {
         a0z = (fGrid.z_min - p1(2)) / dp21z;
         anz = (fGrid.z_min + fGrid.dz * static_cast<MTfloat>(fGrid.nz) - p1(2)) / dp21z;
+    } else if (p1(2) < fGrid.z_min || fGrid.z_min + fGrid.dz*static_cast<MTfloat>(fGrid.nz) <= p1(2)) {
+        return fPath;
     }
 
     // calculate the minimum and maximum values of alpha 
