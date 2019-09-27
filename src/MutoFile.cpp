@@ -50,12 +50,11 @@ MutoMuonData MutoFile::getMuonData(std::vector<std::string> flist, std::vector<M
 
         // get all raw data at once and then process as RayData
         MTindex nEach = 2 * zlayers.size() + 2; // two extra data for in and out energy
-        file.seekg(std::ios::end);
+        file.seekg(0, std::ios::end);
         MTindex filesize = file.tellg();
-        file.seekg(std::ios::beg);
+        file.seekg(0, std::ios::beg);
         MTindex nRay = filesize / nEach / fPrecision;
-        
-        
+ 
         std::vector<MTfloat> dRaw (nEach * nRay, 0.0);
         if (fDouble) {
             std::vector<double> dTemp (nEach * nRay, 0.0); // temp data
@@ -80,6 +79,40 @@ MutoMuonData MutoFile::getMuonData(std::vector<std::string> flist, std::vector<M
 
 // write image data to file
 bool MutoFile::saveImage(const Image& img, const ImageHeader& header, std::string filename) {
+    std::ofstream file;
+    file.open(filename.c_str(), std::ios::out | std::ios::binary);
+    if (file.fail()) {
+        file.close();
+        return false;
+    }
+
+    // write header to front of file
+    unsigned char length = 64, version = 1;
+    file.write((char*)&length, sizeof(unsigned char));
+    file.write((char*)&version, sizeof(unsigned char));
+    file.write(header.method, 16);
+    file.write((char*)&header.nIter, sizeof(unsigned short));
+    file.write((char*)&header.fPrecision, sizeof(unsigned short));
+
+    file.write((char*)& header.grid.nx, sizeof(unsigned short));
+    file.write((char*)& header.grid.ny, sizeof(unsigned short));
+    file.write((char*)& header.grid.nz, sizeof(unsigned short));
+    float xmin = static_cast<float>(header.grid.x_min);
+    float ymin = static_cast<float>(header.grid.y_min);
+    float zmin = static_cast<float>(header.grid.z_min);
+    float dx = static_cast<float>(header.grid.dx);
+    float dy = static_cast<float>(header.grid.dy);
+    float dz = static_cast<float>(header.grid.dz);
+    file.write((char*)& xmin, sizeof(float));
+    file.write((char*)& ymin, sizeof(float));
+    file.write((char*)& zmin, sizeof(float));
+    file.write((char*)& dx, sizeof(float));
+    file.write((char*)& dy, sizeof(float));
+    file.write((char*)& dz, sizeof(float));
+
+    // loop and write the image
+    file.write((char*)img.data(), img.size() * sizeof(MTfloat));
+
     return true;
 }
 
@@ -87,6 +120,7 @@ bool MutoFile::saveImage(const Image& img, const ImageHeader& header, std::strin
 std::pair<Image, ImageHeader> MutoFile::loadImage(std::string filename) {
     return std::pair<Image, ImageHeader>{};
 }
+
 
 RayData MutoFile::getRayDataFromTemp(std::vector<MTfloat>::iterator it0, const std::vector<MTfloat>& z, int m){
     RayData ray;
@@ -96,7 +130,7 @@ RayData MutoFile::getRayDataFromTemp(std::vector<MTfloat>::iterator it0, const s
     ray.ein = *it0;
 
     // upper layers
-    data.resize(m-1, 3);
+    data.resize(m, 3);
 
     for (MTindex i=0; i<m; ++i) {
         data(i, 0) = *(it0 + i*2 + 1);
@@ -111,6 +145,8 @@ RayData MutoFile::getRayDataFromTemp(std::vector<MTfloat>::iterator it0, const s
         data(i, 1) -= ym;
         data(i, 2) -= zm;
     }
+
+    // use SVD in Eigen package to fit in/out rays
     JacobiSVD<MatrixXd> svdUp(data, ComputeThinU | ComputeThinV);
     ray.din = svdUp.matrixV().col(0).transpose();
     t = (z[m-1] - zm) / ray.din(2);

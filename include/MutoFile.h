@@ -3,6 +3,22 @@
    Members are stateless except for the string representing current path. 
 */
 
+/* ----- image header design ------ 
+    | Length     | version    | 0-15 bytes
+    ---------------------------
+    | method                  | 16 x char
+    |                         |
+    ---------------------------
+    | number of rays          | unsigned int
+    |                         |
+    ---------------------------
+    | number of iteration     | usigned short
+    | floating point prec.    |
+    ---------------------------
+    | Grid information        | 3 x unsigned short for nx,ny,nz
+    | ...                     | 6 x float for x_min, dx, ...
+*/
+
 #include <iostream>
 #include <fstream>
 
