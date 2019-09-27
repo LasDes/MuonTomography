@@ -83,6 +83,7 @@ bool MutoFile::saveImage(const Image& img, const ImageHeader& header, std::strin
     file.open(filename.c_str(), std::ios::out | std::ios::binary);
     if (file.fail()) {
         file.close();
+        std::cout << "Writing image to file: "  << filename << " failed. " << std::endl;
         return false;
     }
 
@@ -90,7 +91,8 @@ bool MutoFile::saveImage(const Image& img, const ImageHeader& header, std::strin
     unsigned char length = 64, version = 1;
     file.write((char*)&length, sizeof(unsigned char));
     file.write((char*)&version, sizeof(unsigned char));
-    file.write(header.method, 16);
+    file.write(header.method.c_str(), 16);
+    file.write((char*)&header.nRay, sizeof(unsigned int));
     file.write((char*)&header.nIter, sizeof(unsigned short));
     file.write((char*)&header.fPrecision, sizeof(unsigned short));
 
@@ -109,16 +111,75 @@ bool MutoFile::saveImage(const Image& img, const ImageHeader& header, std::strin
     file.write((char*)& dx, sizeof(float));
     file.write((char*)& dy, sizeof(float));
     file.write((char*)& dz, sizeof(float));
+    std::vector<char> zeropad(8, 0);
+    file.write(&zeropad.front(), 8);
 
     // loop and write the image
-    file.write((char*)img.data(), img.size() * sizeof(MTfloat));
+    if (header.fPrecision == 8) {
+        file.write((char*)img.data(), img.size() * header.fPrecision);
+    } else if (header.fPrecision == 4) {
+        Tensor<float, 3> fImg = img.cast<float>();
+        file.write((char*)fImg.data(), img.size() * header.fPrecision);
+    } else {
+        std::cout << "Floating point precision not supported. " << std::endl;
+        return false;
+    }
 
     return true;
 }
 
 // read image data from file
 std::pair<Image, ImageHeader> MutoFile::loadImage(std::string filename) {
-    return std::pair<Image, ImageHeader>{};
+    std::ifstream file;
+    file.open(filename.c_str(), std::ios::in | std::ios::binary);
+    if (file.fail()) {
+        file.close();
+        std::cout << "Reading image file: "  << filename << " failed. " << std::endl;
+        return std::pair<Image, ImageHeader>{};
+    }
+
+    // read header information
+    unsigned char length, version;
+    char method[16];
+    unsigned int nRay;
+    unsigned short nIter, fPrecision, nx, ny, nz;
+    float xmin, ymin, zmin, dx, dy, dz;
+    file.read(reinterpret_cast<char*>(&length), 1);
+    file.read(reinterpret_cast<char*>(&version), 1);
+    file.read(method, 16);
+    file.read(reinterpret_cast<char*>(&nRay), sizeof(unsigned int));
+    file.read(reinterpret_cast<char*>(&nIter), sizeof(unsigned short));
+    file.read(reinterpret_cast<char*>(&fPrecision), sizeof(unsigned short));
+    file.read(reinterpret_cast<char*>(&nx), sizeof(unsigned short));
+    file.read(reinterpret_cast<char*>(&ny), sizeof(unsigned short));
+    file.read(reinterpret_cast<char*>(&nz), sizeof(unsigned short));
+    file.read(reinterpret_cast<char*>(&xmin), sizeof(float));
+    file.read(reinterpret_cast<char*>(&ymin), sizeof(float));
+    file.read(reinterpret_cast<char*>(&zmin), sizeof(float));
+    file.read(reinterpret_cast<char*>(&dx), sizeof(float));
+    file.read(reinterpret_cast<char*>(&dy), sizeof(float));
+    file.read(reinterpret_cast<char*>(&dz), sizeof(float));
+    file.seekg(length); // seek to end of header
+
+    // construct header
+    ImageHeader header;
+    header.method = method;
+    header.nRay = nRay;
+    header.fPrecision = fPrecision;
+    header.nIter = nIter;    
+    VoxelGrid grid {nx, ny, nz, xmin, ymin, zmin, dx, dy, dz};
+    header.grid = grid;
+
+    Image img(grid.nx, grid.ny, grid.nz);
+
+    if (header.fPrecision == 8) {        
+        file.read(reinterpret_cast<char*>(img.data()), img.size() * header.fPrecision);
+    } else if (header.fPrecision == 4) {
+        Tensor<float, 3> fImg (grid.nx, grid.ny, grid.nz);
+        file.read(reinterpret_cast<char*>(fImg.data()), fImg.size() * header.fPrecision);
+        img = fImg.cast<MTfloat>();
+    }
+    return std::pair<Image, ImageHeader>{img, header};
 }
 
 

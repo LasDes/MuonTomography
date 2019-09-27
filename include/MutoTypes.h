@@ -57,7 +57,7 @@ struct RayData {
 typedef std::vector<RayData> MutoMuonData;
 
 struct ImageHeader {
-	char method[16]; 
+	std::string method; // only the first 16 chars will be write to file header  
 	VoxelGrid grid;
 	MTindex nRay;
 	MTindex nIter;

@@ -4,7 +4,7 @@
 */
 
 /* ----- image header design ------ 
-    | Length     | version    | 0-15 bytes
+    | Length     | version    | 0-15 bits
     ---------------------------
     | method                  | 16 x char
     |                         |
