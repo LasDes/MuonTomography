@@ -11,7 +11,7 @@
 class MutoVReconstruction {
 public:
     MutoVReconstruction() {}
-    virtual ~MutoVReconstruction() = 0;
+    virtual ~MutoVReconstruction() {}
 
     virtual Image reconstruct(const MutoMuonData &) = 0;
 };
