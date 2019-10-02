@@ -16,12 +16,12 @@ MutoPoCA::MutoPoCA() {
     fNNotParallel = 0;
     fNScatInGrid = 0;
     // scattering angle unit, default to mrad, i.e. x1000.0
-    fAngMag = 1000.0;
+    fAngMag = 1.0;
     // eps for floating points comparison
     fEPS = 1.0e-8;
 }
 
-MutoPoCA::MutoPoCA(json config) {
+MutoPoCA::MutoPoCA(json config) : MutoPoCA() {
     // use json `value(key, default)` to set internal parameters
     try {
         json grid = config.at("grid");
@@ -42,7 +42,7 @@ MutoPoCA::MutoPoCA(json config) {
     fHasEnergy = config.value("has_energy", false);
     fLogPrint = config.value("log_results", false);
     fNTotal = config.value("total_num_rays", 0);
-    fAngMag = config.value("angle_unit_mag", 1000.0);
+    fAngMag = config.value("angle_unit_mag", 1.0);
     fEPS = config.value("eps", 1.0e-8);
 }
 
@@ -57,12 +57,16 @@ Image MutoPoCA::reconstruct(const MutoMuonData& rays) {
     fNNotParallel = 0; // clear counters
     fNScatInGrid = 0;
 
+    // setting minimum and maximum values for z (scattering outside of detection area)
+    MTfloat zDetMin = rays[0].pout(2);
+    MTfloat zDetMax = rays[0].pin(2);
+
     // loop each muon in the data
     for (int i=0; i<fNTotal; ++i) {
         // calculate scattering information from current muon
         Vector3 pScat = getPointOfClosestApproach(rays[i]);
         MTfloat aScatSquare = getScatAngleSquare(rays[i].din, rays[i].dout);
-
+        
         // get index of pScat
         MTindex xscat = static_cast<MTindex>((pScat(0) - fGrid.x_min) / fGrid.dx);
         MTindex yscat = static_cast<MTindex>((pScat(1) - fGrid.y_min) / fGrid.dy);
@@ -70,20 +74,18 @@ Image MutoPoCA::reconstruct(const MutoMuonData& rays) {
         // check scattering in the voxel world
         if (xscat < 0 || fGrid.nx <= xscat || 
             yscat < 0 || fGrid.ny <= yscat || 
-            zscat < 0 || fGrid.nz <= zscat) {
+            zscat < 0 || fGrid.nz <= zscat ||
+            pScat(2) < zDetMin || zDetMax < pScat(2)) { // out of detection zone
             continue;
         } else {
             fNScatInGrid ++;
         }
         // add scattering angle to voxel that contains pScat
         if (fHasEnergy) { // not implemented
-            img(xscat, yscat, zscat) += aScatSquare;
+            img(xscat, yscat, zscat) += aScatSquare * rays[i].ein * rays[i].ein;
         } else {
             img(xscat, yscat, zscat) += aScatSquare;
         }  
-
-        // std::cout << "scattering angle square: " << aScatSquare << std::endl;
-        // std::cout << "scattering angle square: " << aScatSquare << std::endl;
 
         // use a straight line to approximate muon path
         if (fStraightLine) {
@@ -99,6 +101,7 @@ Image MutoPoCA::reconstruct(const MutoMuonData& rays) {
             // incoming and outgoing rays
             auto voxelsIn = siddon.getVoxelPath(rays[i].pin, pScat);
             auto voxelsOut = siddon.getVoxelPath(pScat, rays[i].pout);
+
             for (auto v : voxelsIn) {
                 if (fLengthWeighted) {
                     imgWeight(v.x, v.y, v.z) += v.length;
@@ -112,7 +115,7 @@ Image MutoPoCA::reconstruct(const MutoMuonData& rays) {
                 } else {
                     if (v.x != xscat || v.y != yscat || v.z != zscat){
                         imgWeight(v.x, v.y, v.z) += fGrid.dz;
-                    } // prevent doubling the weight at the scattering voxel
+                    }  // prevent doubling the weight at the scattering voxel
                 }
             }
         } // end of adding weight to passing voxels
@@ -162,6 +165,9 @@ Vector3 MutoPoCA::getPointOfClosestApproach(const RayData& ray) {
 MTfloat MutoPoCA::getScatAngleSquare(const Vector3& d1, const Vector3& d2) {
     // NOTE: an alternate way to calcuate scattering angle is to calculate 
     //       the dot product of two directions (cos angle)
+    // MTfloat cosA = d1.dot(d2) / d1.norm() / d2.norm();
+    // return std::pow(std::acos(cosA) * fAngMag, 2);
+
     MTfloat axz = (std::atan2(d1(0), d1(2)) - std::atan2(d2(0), d2(2))) * fAngMag;
     MTfloat ayz = (std::atan2(d1(1), d1(2)) - std::atan2(d2(1), d2(2))) * fAngMag;
     return (axz * axz + ayz * ayz) / 2.0; // return average value of ax^2 and ay^2

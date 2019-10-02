@@ -68,7 +68,11 @@ MutoMuonData MutoFile::getMuonData(std::vector<std::string> flist, std::vector<M
 
         // process each ray and push into output data object
         for (auto it=dRaw.begin(); it != dRaw.end(); it+=nEach) {
-            data.push_back(getRayDataFromTemp(it, zlayers, nMiddle));
+            // check nan before process ray information
+            if (std::all_of(it, it+nEach, [](MTfloat i){return !std::isnan(i);})) {
+                // process data
+                data.push_back(getRayDataFromTemp(it, zlayers, nMiddle));
+            }
         }
 
         file.close();
@@ -120,6 +124,30 @@ bool MutoFile::saveImage(const Image& img, const ImageHeader& header, std::strin
     } else if (header.fPrecision == 4) {
         Tensor<float, 3> fImg = img.cast<float>();
         file.write((char*)fImg.data(), img.size() * header.fPrecision);
+    } else {
+        std::cout << "Floating point precision not supported. " << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+// write image data to file without header
+bool MutoFile::saveImagePure(const Image& img, std::string filename, MTindex fPrecision) {
+    std::ofstream file;
+    file.open(filename.c_str(), std::ios::out | std::ios::binary);
+    if (file.fail()) {
+        file.close();
+        std::cout << "Writing image to file: "  << filename << " failed. " << std::endl;
+        return false;
+    }
+
+    // loop and write the image
+    if (fPrecision == 8) {
+        file.write((char*)img.data(), img.size() * fPrecision);
+    } else if (fPrecision == 4) {
+        Tensor<float, 3> fImg = img.cast<float>();
+        file.write((char*)fImg.data(), img.size() * fPrecision);
     } else {
         std::cout << "Floating point precision not supported. " << std::endl;
         return false;
@@ -180,6 +208,40 @@ std::pair<Image, ImageHeader> MutoFile::loadImage(std::string filename) {
         img = fImg.cast<MTfloat>();
     }
     return std::pair<Image, ImageHeader>{img, header};
+}
+
+// read image data from file
+Image MutoFile::loadImagePure(std::string filename, VoxelGrid grid, MTindex fPrecision) {
+    std::ifstream file;
+    file.open(filename.c_str(), std::ios::in | std::ios::binary);
+    if (file.fail()) {
+        file.close();
+        std::cout << "Reading image file: "  << filename << " failed. " << std::endl;
+        return Image{};
+    }
+
+    // read file size
+    file.seekg(0, std::ios::end); // seek to end of file
+    int filesize = file.tellg(); 
+
+    if (grid.nx * grid.ny * grid.nz * fPrecision != filesize) {
+        std::cout << "Wrong size of the image file and grid: "  << filename << std::endl;
+        return Image{}; 
+    }
+
+    Image img(grid.nx, grid.ny, grid.nz);
+
+    if (fPrecision == 8) {        
+        file.read(reinterpret_cast<char*>(img.data()), img.size() * fPrecision);
+    } else if (fPrecision == 4) {
+        Tensor<float, 3> fImg (grid.nx, grid.ny, grid.nz);
+        file.read(reinterpret_cast<char*>(fImg.data()), fImg.size() * fPrecision);
+        img = fImg.cast<MTfloat>();
+    } else {
+        std::cout << "Floating point precision not supported. " << std::endl;
+        return Image{};
+    }
+    return img;
 }
 
 

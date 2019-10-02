@@ -1,8 +1,6 @@
 #include "MutoSiddon.h"
 #include <cmath>
 
-// #include <iostream>
-
 MutoSiddon::MutoSiddon(const VoxelGrid & grid) {
     fGrid = grid;
     fPath.reserve(2*fGrid.nz);

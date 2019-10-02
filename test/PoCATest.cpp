@@ -4,7 +4,7 @@
 
 #include "MutoTypes.h"
 #include "MutoFile.h"
-#include "MutoMLSD.h"
+#include "MutoPoCA.h"
 
 int main (int argc, char** argv) {
     MutoConfig config;
@@ -24,23 +24,23 @@ int main (int argc, char** argv) {
 
     MutoMuonData data = MutoFile::getMuonData(files, zlayers, nMiddle);
 
-    MutoMLSD mlsd(config.get("mlsd"));
-    Image img = mlsd.reconstruct(data);
+    MutoPoCA poca(config.get("poca"));
+    Image img = poca.reconstruct(data);
 
     std::string output = config.get("output_file");
 
     ImageHeader header;
-    header.grid = mlsd.getCurrentGrid();
+    header.grid = poca.getCurrentGrid();
     header.fPrecision = 4;
-    header.method = "mlsd";
-    header.nIter = config.get("mlsd")["num_iteration"];
+    header.method = "poca";
+    header.nIter = 0;
     header.nRay = data.size();
 
-    MutoFile::saveImagePure(img, output);
+    MutoFile::saveImage(img, header, output);
 
     // stopwatch
     auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - ts);
-    std::cout << "MLSD took: " << time_span.count() << " seconds. " << std::endl;
+    std::cout << "PoCA took: " << time_span.count() << " seconds. " << std::endl;
 
     return 0;
 }

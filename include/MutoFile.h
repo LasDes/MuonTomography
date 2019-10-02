@@ -48,12 +48,18 @@ public:
     //    + whether the operation succeed
     static bool saveImage(const Image& img, const ImageHeader& header, std::string filename);
 
+    // write image data to file (w/o header)
+    static bool saveImagePure(const Image& img, std::string filename, MTindex fPrecision=4);
+
     // read image data from file
     // inputs:
     //    + target file name
     // output:
     //    + a pair contains Image and its header
     static std::pair<Image, ImageHeader> loadImage(std::string filename);
+
+    // load image without header
+    static Image loadImagePure(std::string filename, VoxelGrid grid, MTindex fPrecision=4);
 
     // get current working directory
     static std::string getCurrentPath() { return fCwd; }
