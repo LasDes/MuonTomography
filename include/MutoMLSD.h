@@ -49,6 +49,7 @@ private:
     int fPercentileMean;
 
     bool fStraightLine;
+    bool fEarlyStop;
     bool fHasEnergy;
     bool fLogPrint;
     
@@ -90,7 +91,8 @@ private:
     // get covariance matrix for ONE muon (index i)
     Mat2x2 getCovarianceMatrix(const Image&, const std::vector<std::pair<MTindex, Mat2x2>>&, MTfloat);
     // update S matrix for ONE muon (for index i, update all j such that Lij != 0)
-    void updateSValueMatrix(std::vector<std::vector<MTfloat>>&, std::vector<MTindex>& ,const Image&, const Mat2x2&, 
+    // return the cost function value of current muon
+    MTfloat updateSValueMatrix(std::vector<std::vector<MTfloat>>&, std::vector<MTindex>& ,const Image&, const Mat2x2&, 
                             const std::vector<std::pair<MTindex, Mat2x2>>&, MTfloat, MTfloat, MTfloat, MTfloat, MTfloat);
     // update one voxel of image by Sj
     MTfloat updateImageVoxel(std::vector<MTfloat>&, MTindex);

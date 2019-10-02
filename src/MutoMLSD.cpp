@@ -17,6 +17,7 @@ MutoMLSD::MutoMLSD(){
     fUpdateWithMean = false;
     fStraightLine = false;
     fHasEnergy = false;
+    fEarlyStop = false;
     fLogPrint = false;
 
     // reset counts
@@ -57,6 +58,7 @@ MutoMLSD::MutoMLSD(json config) : MutoMLSD() {
     fUpdateWithMean = config.value("update_with_mean", false);
     fStraightLine = config.value("straight_line", false);
     fHasEnergy = config.value("has_energy", false);
+    fEarlyStop = config.value("early_stop", false);
     fLogPrint = config.value("log_results", false);
     fNTotal = config.value("total_num_rays", 0);
     fPercentileMean = config.value("mean_percentile", 100);
@@ -148,8 +150,8 @@ Image MutoMLSD::reconstruct(const MutoMuonData& rays) {
     // prepare data container for MLSD iterations
     Image imgLast = img; // image that store results from last iteration
 
-    Mat2x2 Sigma, Sigma_inv, ErrorM; //
-    MTfloat Sigma_det; //  
+    Mat2x2 Sigma, Sigma_inv, ErrorM; // covariance matrix 
+    MTfloat Sigma_det, costFuncVal, costFuncValLast; //  determinant of cov. matrix and cost function per iteration
 
     // ! NOTE: THIS MATRIX IS IMPORTANT FOR REAL MEASUREMENT
     // matrix accounting for measurement errors 
@@ -168,21 +170,36 @@ Image MutoMLSD::reconstruct(const MutoMuonData& rays) {
         // clear index of S matrix
         std::fill(S_index.begin(), S_index.end(), 0);
 
+        // reset cost function value
+        costFuncValLast = costFuncVal;
+        costFuncVal = 0.0;
+
         // update covariance matrix Sigma by loop through Wi
         for (MTindex i=0; i<indexInWorld.size(); ++i) {
             MTfloat pr = fHasEnergy ? muonMomemtum[i] : muonMomemtum[0];
             Sigma = getCovarianceMatrix(img, W_matrix[i], pr);
             Sigma += ErrorM;
-            // update Sij for this muon
-            updateSValueMatrix(S_value, S_index, img, Sigma, W_matrix[i], pr, 
-                               xScatterAngle[i], yScatterAngle[i], xDisplacement[i], yDisplacement[i]);
+            // update Sij for this muon return the value of cost function
+            costFuncVal += updateSValueMatrix(S_value, S_index, img, Sigma, W_matrix[i], pr, 
+                                              xScatterAngle[i], yScatterAngle[i], xDisplacement[i], yDisplacement[i]);
         }
         // update image using mean (with percentile) or median value of SMatrix
     #pragma omp parallel for
         for (MTindex j=0; j<img.size(); ++j) {
             img(j) = updateImageVoxel(S_value[j], S_index[j]);
         }
+        // record cost function values
+        costFuncVal /= static_cast<MTfloat>(indexInWorld.size());
+
+        // log for current iteration
         logMessage("Iteration #" + std::to_string(iter) + " finished. ", true);
+        logMessage("\tcost function = " + std::to_string(costFuncVal));
+
+        // early stop if cost function is not decreasing 
+        if (fEarlyStop && costFuncValLast < costFuncVal) {
+            logMessage("Early stop at iteration#" + std::to_string(iter) + ". Minimum cost function = " + std::to_string(costFuncValLast));
+            break;
+        }
     }
 
     if (fLogPrint) {
@@ -417,19 +434,24 @@ Mat2x2 MutoMLSD::getCovarianceMatrix(const Image& img, const std::vector<std::pa
     return p * p * cov;
 }
 
-void MutoMLSD::updateSValueMatrix(std::vector<std::vector<MTfloat>>& S, std::vector<MTindex>& Sindex, const Image&img, 
+MTfloat MutoMLSD::updateSValueMatrix(std::vector<std::vector<MTfloat>>& S, std::vector<MTindex>& Sindex, const Image&img, 
                                      const Mat2x2& cov, const std::vector<std::pair<MTindex, Mat2x2>>& W, 
                                      MTfloat p, MTfloat Sx, MTfloat Sy, MTfloat Dx, MTfloat Dy) {
     // calculate inverse of covariance matrix
+    MTfloat cost = 0.0;
     MTfloat SigmaDet = 1.0;
     Mat2x2 SigmaInv;
     SigmaInv.setZero();
     bool covInversible;
     cov.computeInverseAndDetWithCheck(SigmaInv, SigmaDet, covInversible);
     if (!covInversible || SigmaDet <= 0) {
-        std::cout << "Matrix is not inversible: " << SigmaDet << std::endl;
-        std::cout << "\t its inverse: " << SigmaInv << std::endl;
-        std::cout << "\t its determinant: " << SigmaDet << std::endl;
+        std::cout << "Warning: one Matrix is not inversible. " << std::endl;
+        cost = 0.0; // prevent divide by zero error
+    } else { // calculate cost 
+        cost = std::log(SigmaDet) + 
+               ((Sx*Sx + Sy*Sy) * SigmaInv(0,0) + 
+                (Dx*Dx + Dy*Dy) * SigmaInv(1,1) + 
+                (Sx*Dx + Sy*Dy) * 2.0 * SigmaInv(0,1)) * 0.5;
     }
     // update S matrix for all voxel j that passed by Muon Ray i
     for (auto Wj : W) {
@@ -450,6 +472,8 @@ void MutoMLSD::updateSValueMatrix(std::vector<std::vector<MTfloat>>& S, std::vec
         S[j][Sindex[j]] = sij;
         Sindex[j] ++;  
     }
+    // return cost for this muon
+    return cost;
 }
 
 MTfloat MutoMLSD::updateImageVoxel(std::vector<MTfloat>& Sj, MTindex Mj) {
