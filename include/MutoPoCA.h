@@ -28,7 +28,6 @@ public:
     virtual Image reconstruct(const MutoMuonData &);
 
     // re-configure the PoCA method
-    void configure(json);
     VoxelGrid getCurrentGrid() { return fGrid; } // temporary for testing
 
 private:

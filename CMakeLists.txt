@@ -19,7 +19,7 @@ SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 
 include_directories(${PROJECT_SOURCE_DIR})
-include_directories(${PROJECT_SOURCE_DIR}/eigen)
+include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/eigen) # use system include (-isystem) to silence some warnings
 include_directories(${PROJECT_SOURCE_DIR}/json)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

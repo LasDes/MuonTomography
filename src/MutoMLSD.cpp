@@ -33,8 +33,13 @@ MutoMLSD::MutoMLSD(){
     fInitValue = 1.0e-7;
     fInitImageFile = ""; // default empty path for initial image
 
+    // error matrix estimation for real measurement system
+    fErrorXY = 1.0;
+    fErrorZo = 1000.0;
+    fErrorZi = 1000.0;
+
     // scattering angle unit, default to mrad, i.e. x1000.0
-    fAngMag = 1000.0;
+    fAngMag = 1.0;
     // eps for floating points comparison
     fEPS = 1.0e-8;
 }
@@ -69,7 +74,12 @@ MutoMLSD::MutoMLSD(json config) : MutoMLSD() {
     fInitValue = config.value("initialize_value", 1.0e-7);
     fInitImageFile = config.value("initial_image_file", "");
 
-    fAngMag = config.value("angle_unit_mag", 1000.0);
+    // error matrix 
+    fErrorXY = config.value("error_xy", 1.0);
+    fErrorZo = config.value("error_dz_outer", 1000.0);
+    fErrorZi = config.value("error_dz_inner", 1000.0);
+
+    fAngMag = config.value("angle_unit_mag", 1.0);
     fEPS = config.value("eps", 1.0e-8);
 }
 
@@ -155,9 +165,9 @@ Image MutoMLSD::reconstruct(const MutoMuonData& rays) {
 
     // ! NOTE: THIS MATRIX IS IMPORTANT FOR REAL MEASUREMENT
     // matrix accounting for measurement errors 
-    ErrorM(0,0) = 4.0e-6; // Ep = 1mm, dz0 = dz1 = 1000mm
-    ErrorM(1,1) = 6.0;
-    ErrorM(0,1) = ErrorM(1,0) = 2.0e-3;
+    ErrorM(0,0) = 4.0*fErrorXY*fErrorXY / (fErrorZo*fErrorZo); // Ep = 1mm, dz0 = dz1 = 1000mm
+    ErrorM(1,1) = 2.0*fErrorXY*fErrorXY * (1.0 + (fErrorZi/fErrorZo+1.0) * fErrorZi/fErrorZo);
+    ErrorM(0,1) = ErrorM(1,0) = 2.0*fErrorXY*fErrorXY * fErrorZi/(fErrorZo*fErrorZo);
 
     // matrix store current index of each voxel in S_value matrix
     std::vector<MTindex> S_index;
@@ -275,7 +285,7 @@ void MutoMLSD::gatherInformation(const MutoMuonData & data, std::vector<MTindex>
     if (fHasEnergy) {
         p.reserve(data.size() / 2);
     } else { // assign a constant value to p
-        p.push_back(pNominal / 2.0); // in old MLSDEM implementation, this value is 3/2 for 2GeV muon
+        p.push_back(pNominal / pNominal); // in old MLSDEM implementation, this value is 3/2 for 2GeV muon
     }
 
     for (auto ray : data) {

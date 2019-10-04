@@ -38,10 +38,9 @@ public:
     virtual Image reconstruct(const MutoMuonData &);
 
     // re-configure the MLSD method
-    void configure(json);
     VoxelGrid getCurrentGrid() { return fGrid; } // temporary for testing
 
-private:
+protected:
     // private members 
     VoxelGrid fGrid;
     
@@ -60,8 +59,13 @@ private:
     int fInitMethod;
     MTfloat fInitValue;
     std::string fInitImageFile;
+
+    // for error matrix estimation
+    MTfloat fErrorXY;
+    MTfloat fErrorZo;
+    MTfloat fErrorZi;
     
-    MTfloat fAngMag;
+    MTfloat fAngMag; // should not use before outputs
     MTfloat fEPS;
 
     std::chrono::steady_clock::time_point fTimeStart; // use steady clock
