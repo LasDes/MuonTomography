@@ -36,7 +36,7 @@ int main (int argc, char** argv) {
     header.nIter = config.get("mlsd")["num_iteration"];
     header.nRay = data.size();
 
-    MutoFile::saveImagePure(img, output);
+    MutoFile::saveImage(img, header, output);
 
     // stopwatch
     auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - ts);

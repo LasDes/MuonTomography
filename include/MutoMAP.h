@@ -28,12 +28,37 @@ public:
 
 private:
     // private members specific for regularization in MAP algorithm
+    //  + beta: strength of regularization penalty
+    //  + p: lp-norm of the pair-wise potential function
+    //  + delta: a small number that keep function derivable at 0
     MTfloat fBeta;
     MTfloat fP;
+    MTfloat fDelta;
 
     // some flags to enable addition features
+    //  + all_neighbours: instead of 6 direct neighbours, use all 26 blocks (weighted by dist.) around the center voxel
+    //  + add_object_prior: add independent prior of center voxel
     bool fUseAllNeighbours;
     bool fAddObjectPrior;
 
+    // not configurable internal parameters
+    MTfloat fUnitConv; // convert from rad^2/mm to mrad^2/cm
 
+    // default initialization
+    void defaultInitialize();
+
+protected:
+    // calculate coefficients from neighbouring voxels
+    std::pair<std::vector<MTfloat>, std::vector<MTfloat>> calculateCoefFromNeighbours(MTindex j, const Image& img, MTindex Mj, 
+                                                                                      MTfloat& p2, MTfloat& p3);
+    Matrix<MTindex, 3, 1> index2xyz(MTindex i);
+    std::vector<MTfloat> getSixNeighbours(MTindex j, const Image& img);
+    std::vector<MTfloat> getAllNeighbours(MTindex j, const Image& img);
+    MTfloat chooseBestEstimation(MTindex Mj, MTfloat lj, MTfloat lj_ML, MTfloat* roots, MTindex nRoots, 
+                                 const std::pair<std::vector<MTfloat>, std::vector<MTfloat>>& weightAndLambda);
+
+    MTfloat surrogateFunctionValue(MTindex Mj, MTfloat ljn, MTfloat ljML, MTfloat lj, std::vector<MTfloat> w, std::vector<MTfloat> lm);
+
+    // cubic equation solver using Newton method (x10 faster than PolynomialSolver in Eigen)
+    MTindex cubicEqnSolver(MTfloat* roots, MTfloat p3, MTfloat p2, MTfloat p1, MTfloat p0, MTfloat tol);
 };
