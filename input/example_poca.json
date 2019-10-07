@@ -1,0 +1,29 @@
+{
+    "data_files" : ["/data/TUMUTY/simu_data/append_Plastic_4layer_watersteellead_withE.bin"],
+    "detector_height" : [1500, 1000, 500, -500, -1000, -1500],
+    "detector_middle" : 3,
+
+    "output_file" : "simu_watersteellead_poca.bin",
+    
+    "poca" : {
+        "grid" : {
+            "nx" : 50,
+            "ny" : 50,
+            "nz" : 50,
+            "x_min" : -500.0,
+            "y_min" : -500.0,
+            "z_min" : -500.0,
+            "dx" : 20.0,
+            "dy" : 20.0,
+            "dz" : 20.0
+        },
+        "length_weighted" : true,
+        "straight_line" : false,
+        "has_energy" : false,
+        "total_num_rays" : 0,
+        "angle_unit_mag" : 1.0,
+        "eps" : 1.0e-8,
+        "log_results" : true
+    }
+}
+

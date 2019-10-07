@@ -38,6 +38,10 @@ public:
         return fConfig[attr];
     }
 
+    bool exist(std::string key) {
+        return fConfig.find(key) != fConfig.end();
+    }
+
 private:
     json fConfig;
 };

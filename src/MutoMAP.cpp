@@ -13,6 +13,7 @@ MutoMAP::MutoMAP(json config) : MutoMLSD(config) {
     defaultInitialize();
     fBeta = config.value("beta", 1.0);
     fP = config.value("p", 1.0);
+    fDelta = config.value("delta", 0.1);
     fAddObjectPrior = config.value("add_object_prior", false);
     fUseAllNeighbours = config.value("all_neighbours", false);
 }
@@ -160,6 +161,7 @@ Image MutoMAP::reconstruct(const MutoMuonData& rays) {
         // ------------------------------------------
 
         // optimize each voxel one-by-one
+    #pragma omp parallel for
         for (MTindex j=0; j<imgsize; ++j) { 
             if (S_index[j] == 0) {
                 img(j) = 0.0;
