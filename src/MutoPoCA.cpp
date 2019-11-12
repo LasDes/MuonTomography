@@ -7,7 +7,7 @@ MutoPoCA::MutoPoCA() {
     fGrid.x_min = fGrid.y_min = fGrid.z_min = 0.0;
     fGrid.dx = fGrid.dy = fGrid.dz = 10.0;
     // default settings for add weight to scattering point
-    fLengthWeighted = true;
+    fLengthWeighted = false;
     fStraightLine = false;
     fHasEnergy = false;
     fLogPrint = false;
@@ -37,7 +37,7 @@ MutoPoCA::MutoPoCA(json config) : MutoPoCA() {
     } catch(json::out_of_range) {}
 
     // other setting are in the some level as grid
-    fLengthWeighted = config.value("length_weighted", true);
+    fLengthWeighted = config.value("length_weighted", false);
     fStraightLine = config.value("straight_line", false);
     fHasEnergy = config.value("has_energy", false);
     fLogPrint = config.value("log_results", false);

@@ -5,8 +5,12 @@
 #include "MutoTypes.h"
 #include "MutoFile.h"
 #include "MutoPoCA.h"
+#include "MutoPoCut.h"
 #include "MutoMLSD.h"
 #include "MutoMAP.h"
+#include "MutoSLR.h"
+#include "MutoSLRIter.h"
+
 
 int main (int argc, char** argv) {
     // load JSON configuration file from user input
@@ -45,7 +49,22 @@ int main (int argc, char** argv) {
         rec = new MutoMAP(config.get("map"));
         header.grid = ((MutoMAP*) rec) -> getCurrentGrid();
         header.nIter = config.get("map")["num_iteration"];
-    }
+    } else if (config.exist("slr")) { 
+        method = "slr"; 
+        rec = new MutoSLR(config.get("slr"));   
+        header.grid = ((MutoSLR*) rec) -> getCurrentGrid();
+        header.nIter = 1;
+    } else if (config.exist("slr_iter")) { 
+        method = "slr_iter"; 
+        rec = new MutoSLRIter(config.get("slr_iter"));   
+        header.grid = ((MutoSLRIter*) rec) -> getCurrentGrid();
+        header.nIter = 1;
+    } else if (config.exist("pocut")) { 
+        method = "pocut"; 
+        rec = new MutoPoCut(config.get("pocut"));   
+        header.grid = ((MutoPoCut*) rec) -> getCurrentGrid();
+        header.nIter = 1;
+    } 
 
     Image img = rec->reconstruct(data);
 

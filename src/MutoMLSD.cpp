@@ -148,7 +148,7 @@ Image MutoMLSD::reconstruct(const MutoMuonData& rays) {
         // generate weight matrix
         MTindex nWMatrix = generateWeightMatrix(W_matrix[i], path, tail);      
         // allocate memory for S_value
-        allocateSValueMatrix(S_value, path);
+        allocateSValueMatrix(S_value, path); 
     }
 
     logMessage("Weight matrix was generated." , true);
@@ -295,10 +295,10 @@ void MutoMLSD::gatherInformation(const MutoMuonData & data, std::vector<MTindex>
         Vector3 pScat = getPointOfClosestApproach(ray);
 
         // check scattering in the grid system and detection area
-        if (pScat(0) < fGrid.x_min || fGrid.x_min + fGrid.dx * fGrid.nx <= pScat(0) || 
-            pScat(1) < fGrid.y_min || fGrid.y_min + fGrid.dy * fGrid.ny <= pScat(1) || 
-            pScat(2) < fGrid.z_min || fGrid.z_min + fGrid.dz * fGrid.nz <= pScat(2) ||
-            pScat(2) < zDetMin || zDetMax < pScat(2)) { // out of detection zone
+        if (pScat(0) < fGrid.x_min + fEPS || fGrid.x_min + fGrid.dx * fGrid.nx - fEPS < pScat(0) || 
+            pScat(1) < fGrid.y_min + fEPS || fGrid.y_min + fGrid.dy * fGrid.ny - fEPS < pScat(1) || 
+            pScat(2) < fGrid.z_min + fEPS || fGrid.z_min + fGrid.dz * fGrid.nz - fEPS < pScat(2) ||
+            pScat(2) < zDetMin + fEPS || zDetMax - fEPS <= pScat(2)) { // out of detection zone
             iMuon ++;
             continue;
         }
@@ -393,9 +393,13 @@ MTindex MutoMLSD::getMuonPathAndTail(const RayData& ray, const Vector3& pScat, s
         auto voxelsIn = siddon.getVoxelPath(ray.pin, pScat);
         auto voxelsOut = siddon.getVoxelPath(pScat, ray.pout);
         // take care of the scattering voxel
-        voxelsIn.back().length += voxelsOut[0].length;
-        path.insert(path.begin(), voxelsIn.begin(), voxelsIn.end());
-        path.insert(path.end(), voxelsOut.begin()+1, voxelsOut.end());
+        if (voxelsIn.size() != 0) {
+            voxelsIn.back().length += voxelsOut.size() != 0 ? voxelsOut[0].length : 0.0;
+            path.insert(path.begin(), voxelsIn.begin(), voxelsIn.end());
+        }
+        if (voxelsOut.size() != 0) {
+            path.insert(path.end(), voxelsOut.begin()+1, voxelsOut.end());
+        }
         // assert(path.size() == voxelsIn.size() + voxelsOut.size() -1);
     }
 

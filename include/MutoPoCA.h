@@ -30,7 +30,7 @@ public:
     // re-configure the PoCA method
     VoxelGrid getCurrentGrid() { return fGrid; } // temporary for testing
 
-private:
+protected:
     // private members 
     VoxelGrid fGrid;
     bool fLengthWeighted;

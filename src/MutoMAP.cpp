@@ -38,7 +38,7 @@ void MutoMAP::defaultInitialize() {
 // --------------------------------------------------------------------
 Image MutoMAP::reconstruct(const MutoMuonData& rays) {
     logMessage("==================================================");
-    logMessage("|| MLSD reconstruction start                    ||");
+    logMessage("|| MLSD with regularization start               ||");
     logMessage("==================================================");
 
     // start timing
